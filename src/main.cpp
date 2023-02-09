@@ -1,7 +1,7 @@
 #include <iostream>
 #include "monster.h"
 #include "humanoid.h"
-#include <../engine/entrypoint.h>
+#include <../AvariceEngine/entrypoint.h>
 #include <coroutine>
 
 using namespace Avarice;

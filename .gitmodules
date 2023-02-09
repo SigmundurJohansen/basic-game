@@ -1,0 +1,3 @@
+[submodule "AvariceEngine"]
+	path = AvariceEngine
+	url = https://github.com/SigmundurJohansen/AvariceEngine.git
