@@ -104,8 +104,8 @@
     "images" : [
         {
             "mimeType" : "image/png",
-            "name" : "diffuse",
-            "uri" : "diffuse.png"
+            "name" : "crow",
+            "uri" : "crow.png"
         }
     ],
     "accessors" : [
