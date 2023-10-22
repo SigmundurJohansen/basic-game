@@ -1,172 +1,128 @@
 #include "../AvariceEngine/entrypoint.h"
-#include "humanoid.h"
+#include "GLFW/glfw3.h"
+#include "components.h"
+#include "game.h"
+#include "game_manager.h"
+#include "imgui.h"
+#include "logger.h"
+#include "maps.h"
 #include "monster.h"
-#include <iostream>
+#include "platform/custom_window.h"
+#include "resource_manager.h"
+#include "service_locator.h"
+#include "settings.h"
+#include "utils/time.h"
+#include <thread>
 
 using namespace Avarice;
 
-class SuperGame : public Game {
-public:
-  Humanoid all_humans[100];
-  InputManager *m_inputManager;
-  static bool m_orientate;
-  static bool m_moveUp;
-  static bool m_moveLeft;
-  static bool m_moveRight;
-  static bool m_moveDown;
-  static bool m_moveForward;
-  static bool m_moveBackward;
+const std::string asset_directory = "D:/repo/basic-game/assets/textures/demo";
 
-  static void ToggleOrientate() {
-    m_orientate ? m_orientate = false : m_orientate = true;
-  }
-  static void ToggleMoveUp() { m_moveUp ? m_moveUp = false : m_moveUp = true; }
-  static void ToggleMoveLeft() {
-    m_moveLeft ? m_moveLeft = false : m_moveLeft = true;
-  }
-  static void ToggleMoveRight() {
-    m_moveRight ? m_moveRight = false : m_moveRight = true;
-  }
-  static void ToggleMoveDown() {
-    m_moveDown ? m_moveDown = false : m_moveDown = true;
-  }
-  static void ToggleMoveForward() {
-    m_moveForward ? m_moveForward = false : m_moveForward = true;
-  }
-  static void ToggleMoveBack() {
-    m_moveBackward ? m_moveBackward = false : m_moveBackward = true;
-  }
+// colors
+float white[4] = {1, 1, 1, 1};
 
-  void SetGameSettings() {
-    m_moveUp = false;
-    m_inputManager = ServiceLocator::GetInputManager();
-    if (m_inputManager) {
-      std::cout << "setting input manager \n";
-      m_inputManager->MapInputToAction(InputKey::MOUSE_LEFT,
-                                       InputAction{.actionName = "click"});
-      m_inputManager->MapInputToAction(InputKey::KEY_W,
-                                       InputAction{.actionName = "forward"});
-      m_inputManager->MapInputToAction(InputKey::KEY_A,
-                                       InputAction{.actionName = "left"});
-      m_inputManager->MapInputToAction(InputKey::KEY_S,
-                                       InputAction{.actionName = "back"});
-      m_inputManager->MapInputToAction(InputKey::KEY_D,
-                                       InputAction{.actionName = "right"});
-      m_inputManager->MapInputToAction(InputKey::KEY_C,
-                                       InputAction{.actionName = "down"});
-      m_inputManager->MapInputToAction(InputKey::SPACE,
-                                       InputAction{.actionName = "up"});
-
-      m_inputManager->RegisterActionCallback(
-          "left",
-          InputManager::ActionCallback{
-              .Ref = "main game",
-              .Func = [](InputSource source, int sourceIndex, float value) {
-                std::cout << "left";
-                ToggleMoveLeft();
-                return true;
-              }});
-
-      m_inputManager->RegisterActionCallback(
-          "right",
-          InputManager::ActionCallback{
-              .Ref = "main game",
-              .Func = [](InputSource source, int sourceIndex, float value) {
-                std::cout << "right";
-                ToggleMoveRight();
-                return true;
-              }});
-
-      m_inputManager->RegisterActionCallback(
-          "back",
-          InputManager::ActionCallback{
-              .Ref = "main game",
-              .Func = [](InputSource source, int sourceIndex, float value) {
-                std::cout << "backingup";
-                ToggleMoveBack();
-                return true;
-              }});
-
-      m_inputManager->RegisterActionCallback(
-          "forward",
-          InputManager::ActionCallback{
-              .Ref = "main game",
-              .Func = [](InputSource source, int sourceIndex, float value) {
-                ToggleMoveForward();
-                return true;
-              }});
-
-      m_inputManager->RegisterActionCallback(
-          "down",
-          InputManager::ActionCallback{
-              .Ref = "main game",
-              .Func = [](InputSource source, int sourceIndex, float value) {
-                std::cout << "down";
-                ToggleMoveDown();
-                return true;
-              }});
-      m_inputManager->RegisterActionCallback(
-          "up",
-          InputManager::ActionCallback{
-              .Ref = "main game",
-              .Func = [](InputSource source, int sourceIndex, float value) {
-                ToggleMoveUp();
-                return true;
-              }});
-      m_inputManager->RegisterActionCallback(
-          "click",
-          InputManager::ActionCallback{
-              .Ref = "main game",
-              .Func = [this](InputSource source, int sourceIndex, float value) {
-                std::cout << "clicking";
-                if (value == 0)
-                  ServiceLocator::GetCamera()->ToggleFirstMouseClick();
-
-                ServiceLocator::GetWindow()->SetCursorVisibility(false);
-                ToggleOrientate();
-                if (value == 0)
-                  ServiceLocator::GetWindow()->SetCursorVisibility(true);
-                return true;
-              }});
-    }
-  }
-
-  explicit SuperGame(std::string _title) : Game(_title) {
-    SetGameSettings();
-    all_humans[0].m_name = "billy";
-    all_humans[0].PrintStat();
-    all_humans[1].PrintStat();
-    Item longswordPlussOne;
-    longswordPlussOne.m_name = "longsword +1";
-    longswordPlussOne.AddEnchantment(ItemEnchantment(damage, 1));
-    longswordPlussOne.AddEnchantment(ItemEnchantment(thac0, 1));
-    all_humans[0].m_inventory[6] = longswordPlussOne;
-    std::cout << "equpied weapon: ";
-    all_humans[0].m_inventory[6].PrintStats();
-    Monster one("goblin");
-    std::cout << one.GetName() << std::endl;
-  }
-
-protected:
-  virtual void Update(float _deltaTime) override {
-    if (m_orientate) {
-      ServiceLocator::GetCamera()->Orientate(_deltaTime);
-    }
-    if (m_moveUp)
-      ServiceLocator::GetCamera()->MoveUp(_deltaTime);
-    if (m_moveDown)
-      ServiceLocator::GetCamera()->MoveDown(_deltaTime);
-    if (m_moveLeft)
-      ServiceLocator::GetCamera()->MoveLeft(_deltaTime);
-    if (m_moveRight)
-      ServiceLocator::GetCamera()->MoveRight(_deltaTime);
-    if (m_moveForward)
-      ServiceLocator::GetCamera()->MoveForward(_deltaTime);
-    if (m_moveBackward)
-      ServiceLocator::GetCamera()->MoveBackwards(_deltaTime);
-
-    // std::cout << "i'm updating" << std::endl;
-  }
+struct coordinates
+{
+    int x;
+    int y;
 };
 
-Game *Avarice::CreateGame() { return new SuperGame("main game"); }
+class SuperGame : public Game
+{
+  public:
+    GameSettings settings;
+    game_map start_map;
+
+    explicit SuperGame(std::string _title) : Game(std::move(_title))
+    {
+
+        float white[4] = {1, 1, 1, 1};
+        settings.SetGameSettings();
+        ResourceManager::LoadTextures(asset_directory);
+        auto &game_manager = GameManager::GetInstance();
+        game_manager.SetGlobalString1("isometric_0000");
+        game_manager.SetGlobalBool1(false);
+        game_manager.SetGlobalBool2(true);
+        game_manager.SetGlobalInteger1(100); // health
+        game_manager.SetGlobalInteger2(500); // money
+        game_manager.SetGlobalInteger3(0);   // turn
+        // Tower Prices
+        game_manager.SetGlobalInteger4(100); // tower 1
+        game_manager.SetGlobalInteger5(300); // tower 2
+        int i = 0;
+        float depth = 0.0001f;
+        for (int y = 0; y < 20; y++)
+        {
+            for (int x = 0; x < 10; x++)
+            {
+                int my_id = game_manager.GetGlobalInteger7() + 1;
+                game_manager.SetGlobalInteger7(my_id);
+
+                entt::entity tile = Avarice::ServiceLocator::GetEntites()->GetRegistry().create();
+                game_object_component tile_object;
+                tile_object.name = "tile";
+                tile_object.type = 2;
+                tile_object.health = 100;
+                tile_object.id = my_id;
+                if (game_map1.size() > i)
+                    tile_object.model = game_map1[i];
+                Avarice::ServiceLocator::GetEntites()->GetRegistry().emplace<Avarice::game_object_component>(tile, tile_object);
+
+                transform_component tile_transform;
+                tile_transform.position.x = 200 * x + y % 2 * 100 + 100;
+                tile_transform.position.y = 50 * y + 100;
+                tile_transform.scale = glm::vec3(0.2);
+                tile_transform.depth = depth;
+                depth = depth + 0.0001f;
+                Avarice::ServiceLocator::GetEntites()->GetRegistry().emplace<Avarice::transform_component>(tile, tile_transform);
+                i++;
+            }
+        }
+        ServiceLocator::GetRenderer()->AddImage(200, 190, altar[0], 0.08, 0.2);
+        ServiceLocator::GetRenderer()->AddImage(1000, 490, fire[0], 0.08, 0.2);
+
+        s_monsters.emplace_back(Monster("skeleton1", 990, 480));
+    }
+
+  protected:
+    virtual void Update(float _deltaTime) override
+    {
+        auto &game_manager = GameManager::GetInstance();
+        ServiceLocator::GetEntites()->Update(_deltaTime);
+        game_manager.SetGlobalInteger3(glfwGetTime());
+        if (game_manager.GetGlobalInteger3() == 5 && game_manager.GetGlobalBool2())
+        {
+            s_monsters.emplace_back(Monster("skeleton1", 990, 480));
+            game_manager.SetGlobalBool2(false);
+            game_manager.SetGlobalBool3(true);
+        }
+        if (game_manager.GetGlobalInteger3() == 6 && game_manager.GetGlobalBool3())
+        {
+            s_monsters.emplace_back(Monster("skeleton1", 990, 480));
+            game_manager.SetGlobalBool3(false);
+            game_manager.SetGlobalBool4(true);
+        }
+        if (game_manager.GetGlobalInteger3() == 7 && game_manager.GetGlobalBool4())
+        {
+            s_monsters.emplace_back(Monster("skeleton4", 990, 480));
+            game_manager.SetGlobalBool4(false);
+            game_manager.SetGlobalBool5(true);
+        }
+        if (game_manager.GetGlobalInteger3() == 8 && game_manager.GetGlobalBool5())
+        {
+            s_monsters.emplace_back(Monster("skeleton2", 990, 480));
+            game_manager.SetGlobalBool5(false);
+            game_manager.SetGlobalBool4(true);
+        }
+        if (game_manager.GetGlobalInteger3() == 9 && game_manager.GetGlobalBool6())
+        {
+            s_monsters.emplace_back(Monster("skeleton3", 990, 480));
+            game_manager.SetGlobalBool6(false);
+        }
+    }
+};
+
+Game *Avarice::CreateGame()
+{
+    return new SuperGame("main game");
+}
